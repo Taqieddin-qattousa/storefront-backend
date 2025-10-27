@@ -1,15 +1,30 @@
-import express, { Request, Response } from 'express'
-import bodyParser from 'body-parser'
+import express, { Request, Response } from 'express';
+import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import productRoutes from './handlers/products';
+import userRoutes from './handlers/users';
+import orderRoutes from './handlers/orders';
 
-const app: express.Application = express()
-const address: string = "0.0.0.0:3000"
+dotenv.config();
 
-app.use(bodyParser.json())
+const app = express();
+const port = process.env.PORT || 3000;
 
-app.get('/', function (req: Request, res: Response) {
-    res.send('Hello World!')
-})
+// Use body-parser middleware to parse JSON request bodies
+app.use(bodyParser.json());
 
-app.listen(3000, function () {
-    console.log(`starting app on: ${address}`)
-})
+// Simple welcome route
+app.get('/', (req: Request, res: Response) => {
+  res.send('Welcome to the Store API!');
+});
+
+// Use the imported route functions, passing the app instance
+productRoutes(app);
+userRoutes(app);
+orderRoutes(app);
+
+app.listen(port, () => {
+  console.log(`Server started at http://localhost:${port}`);
+});
+
+export default app;

@@ -8,5 +8,16 @@ export default tseslint.config(
   eslintPluginPrettierRecommended,
   {
     ignores: ['dist', 'node_modules'],
+  },
+  {
+  rules: {
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }
+    ]
   }
-);
+});

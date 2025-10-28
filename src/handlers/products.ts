@@ -1,9 +1,12 @@
+// Product handlers and route registration.
+// Create is public; reads are public.
 import express, { Request, Response } from 'express';
 import { Product, ProductStore } from '../models/product';
+import verifyAuthToken from '../services/auth';
 
 const store = new ProductStore();
 
-// Handler function for Index (Get All Products)
+/** Get all products */
 const index = async (_req: Request, res: Response) => {
   try {
     const products = await store.index();
@@ -13,18 +16,23 @@ const index = async (_req: Request, res: Response) => {
   }
 };
 
-// Handler function for Show (Get One Product)
+/** Get one product by id */
 const show = async (req: Request, res: Response) => {
   try {
     const productId: string = req.params.id;
     const product = await store.show(productId);
     res.json(product);
   } catch (err) {
-    res.status(400).json((err as Error).message);
+    const error = err as Error;
+    if (error.message.includes('not found')) {
+      res.status(404).json(error.message);
+    } else {
+      res.status(400).json(error.message);
+    }
   }
 };
 
-// Handler function for Create (New Product)
+/** Create a new product */
 const create = async (req: Request, res: Response) => {
   try {
     const p: Product = {
@@ -40,11 +48,11 @@ const create = async (req: Request, res: Response) => {
   }
 };
 
-// This function will group all our product routes
+/** Register product endpoints */
 const productRoutes = (app: express.Application) => {
   app.get('/products', index);
   app.get('/products/:id', show);
-  app.post('/products', create);
+  app.post('/products', verifyAuthToken, create);
 };
 
 export default productRoutes;

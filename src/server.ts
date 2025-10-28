@@ -1,3 +1,4 @@
+// Express app setup and route wiring.
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
@@ -10,15 +11,12 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Use body-parser middleware to parse JSON request bodies
 app.use(bodyParser.json());
 
-// Simple welcome route
 app.get('/', (req: Request, res: Response) => {
   res.send('Welcome to the Store API!');
 });
 
-// Use the imported route functions, passing the app instance
 productRoutes(app);
 userRoutes(app);
 orderRoutes(app);

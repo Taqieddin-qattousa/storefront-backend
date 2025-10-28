@@ -64,22 +64,43 @@ describe('Product Model', () => {
   });
 
   it('update method should update the product data', async () => {
-    const updatedProductData: Product = {
-      id: testProduct.id,
-      name: 'Updated Test Book',
-      price: 1999,
+    const updated = await store.update(testProduct.id!.toString(), {
+      price: 2000,
       category: 'Updated Books',
-    };
+    });
+    expect(updated.id).toEqual(testProduct.id);
+    expect(updated.name).toEqual('Test Book');
+    expect(updated.price).toEqual(2000);
+    expect(updated.category).toEqual('Updated Books');
+  });
 
-    const updatedProduct = await store.update(updatedProductData);
+  it('should have an indexByCategory method', () => {
+    expect(store.indexByCategory).toBeDefined();
+  });
 
-    expect(updatedProduct.id).toEqual(testProduct.id);
-    expect(updatedProduct.name).toEqual(updatedProductData.name);
-    expect(updatedProduct.price).toEqual(updatedProductData.price);
-    expect(updatedProduct.category).toEqual(updatedProductData.category);
+  it('indexByCategory method should return products in the specified category', async () => {
+    await store.create({
+      name: 'Another Book',
+      price: 1200,
+      category: 'Books',
+    });
+    await store.create({
+      name: 'Laptop',
+      price: 50000,
+      category: 'Electronics',
+    });
 
-    const refetchedProduct = await store.show(testProduct.id!.toString());
-    expect(refetchedProduct.name).toEqual(updatedProductData.name);
+    const booksResult = await store.indexByCategory('Books');
+    expect(booksResult.length).toEqual(2);
+    expect(booksResult.every((p) => p.category === 'Books')).toBeTrue();
+
+    const electronicsResult = await store.indexByCategory('Electronics');
+    expect(electronicsResult.length).toEqual(1);
+    expect(electronicsResult[0].name).toEqual('Laptop');
+  });
+
+  it('should have a getTopProducts method', () => {
+    expect(store.getTopProducts).toBeDefined();
   });
 
   afterAll(async () => {

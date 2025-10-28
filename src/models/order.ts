@@ -82,4 +82,27 @@ export class OrderStore {
       );
     }
   }
+
+  async getRecentPurchases(userId: string): Promise<OrderProduct[]> {
+    try {
+      const sql = `
+        SELECT op.id, op.quantity, op.order_id, op.product_id, 
+               p.name, p.price, p.category, o.status
+        FROM order_products op
+        INNER JOIN orders o ON op.order_id = o.id
+        INNER JOIN products p ON op.product_id = p.id
+        WHERE o.user_id = $1 AND o.status = 'complete'
+        ORDER BY o.id DESC
+        LIMIT 5
+      `;
+      const conn = await client.connect();
+      const result = await conn.query(sql, [parseInt(userId)]);
+      conn.release();
+      return result.rows;
+    } catch (err) {
+      throw new Error(
+        `Could not get recent purchases for user ${userId}. Error: ${err}`
+      );
+    }
+  }
 }

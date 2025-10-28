@@ -98,4 +98,69 @@ describe('Product Handler Endpoints', () => {
     const response = await request.get(`/products/${nonExistentId}`);
     expect(response.status).toBe(404);
   });
+
+  it('PUT /products/:id should update a product (requires token)', async () => {
+    const updateData = {
+      price: 1500,
+      category: 'Updated Category',
+    };
+
+    const response = await request
+      .put(`/products/${createdProduct.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(updateData);
+
+    expect(response.status).toBe(200);
+    expect(response.body.id).toEqual(createdProduct.id);
+    expect(response.body.name).toEqual('Test Product BeforeEach');
+    expect(response.body.price).toEqual(1500);
+    expect(response.body.category).toEqual('Updated Category');
+  });
+
+  it('PUT /products/:id should return 401 if no token is provided', async () => {
+    const response = await request
+      .put(`/products/${createdProduct.id}`)
+      .send({ price: 2000 });
+    expect(response.status).toBe(401);
+  });
+
+  it('DELETE /products/:id should delete a product (requires token)', async () => {
+    const response = await request
+      .delete(`/products/${createdProduct.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.id).toEqual(createdProduct.id);
+
+    const getResponse = await request.get(`/products/${createdProduct.id}`);
+    expect(getResponse.status).toBe(404);
+  });
+
+  it('DELETE /products/:id should return 401 if no token is provided', async () => {
+    const response = await request.delete(`/products/${createdProduct.id}`);
+    expect(response.status).toBe(401);
+  });
+
+  it('GET /products?category=X should filter products by category', async () => {
+    await request
+      .post('/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Book', price: 1200, category: 'Books' });
+
+    await request
+      .post('/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Laptop', price: 50000, category: 'Electronics' });
+
+    const response = await request.get('/products?category=Books');
+    expect(response.status).toBe(200);
+    expect(response.body.length).toEqual(1);
+    expect(response.body[0].name).toEqual('Book');
+  });
+
+  it('GET /products/popular should return top products', async () => {
+    const response = await request.get('/products/popular');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBeTrue();
+  });
 });

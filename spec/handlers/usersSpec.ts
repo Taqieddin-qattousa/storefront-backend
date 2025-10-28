@@ -91,6 +91,51 @@ describe('User Handler Endpoints', () => {
     expect(response.status).toBe(404);
   });
 
+  it('GET /users/:id should include recentPurchases array', async () => {
+    const response = await request
+      .get(`/users/${testUser.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.recentPurchases).toBeDefined();
+    expect(Array.isArray(response.body.recentPurchases)).toBeTrue();
+  });
+
+  it('DELETE /users/:id should delete a user (requires token)', async () => {
+    const newUserResponse = await request.post('/users').send({
+      firstName: 'ToDelete',
+      lastName: 'User',
+      password: 'password',
+    });
+    const newToken = newUserResponse.body.token;
+
+    const usersBeforeDelete = await request
+      .get('/users')
+      .set('Authorization', `Bearer ${token}`);
+    const userCount = usersBeforeDelete.body.length;
+
+    const userToDelete = usersBeforeDelete.body.find(
+      (u: User) => u.firstName === 'ToDelete'
+    );
+
+    const deleteResponse = await request
+      .delete(`/users/${userToDelete.id}`)
+      .set('Authorization', `Bearer ${newToken}`);
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.body.id).toEqual(userToDelete.id);
+
+    const usersAfterDelete = await request
+      .get('/users')
+      .set('Authorization', `Bearer ${token}`);
+    expect(usersAfterDelete.body.length).toEqual(userCount - 1);
+  });
+
+  it('DELETE /users/:id should return 401 if no token is provided', async () => {
+    const response = await request.delete(`/users/${testUser.id}`);
+    expect(response.status).toBe(401);
+  });
+
   afterAll(async () => {
     const conn = await client.connect();
     await conn.query('TRUNCATE users RESTART IDENTITY CASCADE;');

@@ -50,31 +50,30 @@ export class ProductStore {
       throw new Error(`Could not create product. Error: ${err}`);
     }
   }
-  // Method to update an existing product (Update)
-  async update(p: Product): Promise<Product> {
-    // Check if the product ID exists
-    if (!p.id) {
-      throw new Error('Product ID is required for update.');
-    }
+
+  async update(id: string, p: Partial<Product>): Promise<Product> {
     try {
       const conn = await client.connect();
       const sql =
-        'UPDATE products SET name = $1, price = $2, category = $3 WHERE id = $4 RETURNING *';
-      const result = await conn.query(sql, [p.name, p.price, p.category, p.id]);
+        'UPDATE products SET name = COALESCE($1, name), price = COALESCE($2, price), category = COALESCE($3, category) WHERE id = $4 RETURNING *';
+      const result = await conn.query(sql, [
+        p.name ?? null,
+        p.price ?? null,
+        p.category ?? null,
+        parseInt(id),
+      ]);
       conn.release();
 
       if (!result.rows[0]) {
-        throw new Error(`Could not update product ${p.id}. Product not found.`);
+        throw new Error(`Product with ID ${id} not found.`);
       }
 
       return result.rows[0];
     } catch (err) {
-      if ((err as Error).message.includes('not found')) {
-        throw err;
-      }
-      throw new Error(`Could not update product ${p.id}. Error: ${err}`);
+      throw new Error(`Could not update product ${id}. Error: ${err}`);
     }
   }
+
   async delete(id: string): Promise<Product> {
     try {
       const conn = await client.connect();
@@ -84,6 +83,37 @@ export class ProductStore {
       return result.rows[0];
     } catch (err) {
       throw new Error(`Could not delete product ${id}. Error: ${err}`);
+    }
+  }
+
+  async indexByCategory(category: string): Promise<Product[]> {
+    try {
+      const conn = await client.connect();
+      const sql = 'SELECT * FROM products WHERE category = $1';
+      const result = await conn.query(sql, [category]);
+      conn.release();
+      return result.rows;
+    } catch (err) {
+      throw new Error(`Could not get products by category. Error: ${err}`);
+    }
+  }
+
+  async getTopProducts(): Promise<Product[]> {
+    try {
+      const conn = await client.connect();
+      const sql = `
+        SELECT p.id, p.name, p.price, p.category, SUM(op.quantity) as total_quantity
+        FROM products p
+        INNER JOIN order_products op ON p.id = op.product_id
+        GROUP BY p.id
+        ORDER BY total_quantity DESC
+        LIMIT 5
+      `;
+      const result = await conn.query(sql);
+      conn.release();
+      return result.rows;
+    } catch (err) {
+      throw new Error(`Could not get top products. Error: ${err}`);
     }
   }
 }

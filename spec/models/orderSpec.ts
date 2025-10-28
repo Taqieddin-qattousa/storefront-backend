@@ -95,6 +95,17 @@ describe('Order Model', () => {
     expect(completedOrders).toEqual([]);
   });
 
+  it('should have a getRecentPurchases method', () => {
+    expect(orderStore.getRecentPurchases).toBeDefined();
+  });
+
+  it('getRecentPurchases method should return empty array for user with no completed orders', async () => {
+    const purchases = await orderStore.getRecentPurchases(
+      testUser.id!.toString()
+    );
+    expect(purchases).toEqual([]);
+  });
+
   afterAll(async () => {
     const conn = await client.connect();
     await conn.query('TRUNCATE users RESTART IDENTITY CASCADE;');

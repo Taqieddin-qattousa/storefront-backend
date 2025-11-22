@@ -3,6 +3,7 @@
 import express, { Request, Response } from 'express';
 import { OrderStore } from '../models/order';
 import verifyAuthToken from '../services/auth';
+import client from '../database';
 
 const store = new OrderStore();
 
@@ -53,16 +54,32 @@ const addProduct = async (req: Request, res: Response) => {
   }
 };
 
-/** Register order endpoints (all require auth) */
+/** Mark an order as complete */
+const completeOrder = async (req: Request, res: Response) => {
+  try {
+    const orderId: string = req.params.id;
+    const conn = await client.connect();
+    const sql = 'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *';
+    const result = await conn.query(sql, ['complete', parseInt(orderId)]);
+    conn.release();
+
+    if (!result.rows[0]) {
+      res.status(404).json(`Order with ID ${orderId} not found.`);
+      return;
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(400).json((err as Error).message);
+  }
+};
+
 const orderRoutes = (app: express.Application) => {
-  app.get('/orders/current/:userId', verifyAuthToken, getCurrentOrderByUser);
-  app.get(
-    '/orders/completed/:userId',
-    verifyAuthToken,
-    getCompletedOrdersByUser
-  );
   app.post('/orders', verifyAuthToken, create);
   app.post('/orders/:id/products', verifyAuthToken, addProduct);
+  app.put('/orders/:id/complete', verifyAuthToken, completeOrder);
+  app.get('/orders/current/:userId', verifyAuthToken, getCurrentOrderByUser);
+  app.get('/orders/completed/:userId', verifyAuthToken, getCompletedOrdersByUser);
 };
 
 export default orderRoutes;
